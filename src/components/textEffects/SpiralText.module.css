@@ -1,0 +1,29 @@
+.anchor {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+
+.mover {
+  position: absolute;
+  offset-rotate: 0deg; /* keep text upright, don't rotate with the path */
+  offset-distance: 0%;
+  animation: spiral-move 14s linear infinite;
+  transform: translate(-50%, -50%); /* center the text block on the path point */
+}
+
+.text {
+  margin: 0;
+  color: white;
+  font-family: monospace;
+  text-align: center;
+  white-space: pre-line;
+}
+
+@keyframes spiral-move {
+  to {
+    offset-distance: 100%;
+  }
+}

@@ -1,0 +1,30 @@
+.anchor {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+
+.mover {
+  position: absolute;
+  offset-anchor: center;
+  offset-rotate: auto; /* <-- this is the "twist with the angle" part */
+  offset-distance: 0%;
+  animation-name: square-move;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.text {
+  display: inline-block;
+  white-space: nowrap;
+  font-family: monospace;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes square-move {
+  to {
+    offset-distance: 100%;
+  }
+}
