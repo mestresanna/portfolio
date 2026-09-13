@@ -1,0 +1,33 @@
+.wrapper {
+  overflow: hidden;
+  display: absolute;
+  width: 100%;
+  align-items: center;
+  background-color: #ff0000;
+  height: 3%;
+}
+
+.text {
+  position: absolute;
+  top: 50%;
+  white-space: nowrap;
+  color: white;
+  font-weight: 700;
+  font-size: clamp(1rem, 3vw, 3rem);
+  animation: marquee 15s infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translate(20%, -50%);
+  }
+  to {
+    transform: translate(-100vw, -50%);
+  }
+}
+
+.wrapper:hover .text {
+  animation-play-state: paused;
+}
+
+

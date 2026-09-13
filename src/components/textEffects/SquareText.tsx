@@ -4,10 +4,11 @@ import styles from "./SquareText.module.css";
 
 interface SquareTextProps {
   text: string;
-  size?: number;       // side length of the square, in px
-  duration?: number;   // seconds for one full loop
-  fontSize?: number;   // px
+  size?: number;        // side length of the square, in px
+  duration?: number;    // seconds for one full loop
+  fontSize?: number;    // px
   color?: string;
+  letterDelay?: number; // seconds of phase offset between consecutive letters
 }
 
 function generateSquarePath(size: number) {
@@ -21,25 +22,28 @@ export default function SquareText({
   duration = 8,
   fontSize = 18,
   color = "white",
+  letterDelay = 0.15,
 }: SquareTextProps) {
   const path = generateSquarePath(size);
+  const letters = Array.from(text);
 
   return (
     <div className={styles.anchor}>
-      <div
-        className={styles.mover}
-        style={{
-          offsetPath: `path("${path}")`,
-          animationDuration: `${duration}s`,
-        }}
-      >
+      {letters.map((char, i) => (
         <span
-          className={styles.text}
-          style={{ fontSize: `${fontSize}px`, color }}
+          key={i}
+          className={styles.mover}
+          style={{
+            offsetPath: `path("${path}")`,
+            animationDuration: `${duration}s`,
+            animationDelay: `${-i * letterDelay}s`, // negative = stagger phase, not start time
+            fontSize: `${fontSize}px`,
+            color,
+          }}
         >
-          {text}
+          {char === " " ? "\u00A0" : char}
         </span>
-      </div>
+      ))}
     </div>
   );
 }

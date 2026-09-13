@@ -12,15 +12,111 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Cube page transition — see src/lib/cubeTransition.ts for the direction ->
+   transition-type names these selectors must match. */
+
+@keyframes cube-roll-horizontal {
+  from {
+    transform: rotateY(var(--cube-rotate)) translateX(var(--cube-translate));
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes cube-roll-vertical {
+  from {
+    transform: rotateX(var(--cube-rotate)) translateY(var(--cube-translate));
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+::view-transition-group(.cube-left),
+::view-transition-group(.cube-right),
+::view-transition-group(.cube-top),
+::view-transition-group(.cube-bottom) {
+  perspective: 1600px;
+}
+
+::view-transition-image-pair(.cube-left),
+::view-transition-image-pair(.cube-right),
+::view-transition-image-pair(.cube-top),
+::view-transition-image-pair(.cube-bottom) {
+  transform-style: preserve-3d;
+}
+
+::view-transition-old(.cube-left),
+::view-transition-old(.cube-right),
+::view-transition-old(.cube-top),
+::view-transition-old(.cube-bottom),
+::view-transition-new(.cube-left),
+::view-transition-new(.cube-right),
+::view-transition-new(.cube-top),
+::view-transition-new(.cube-bottom) {
+  backface-visibility: hidden;
+}
+
+::view-transition-new(.cube-right) {
+  --cube-rotate: 90deg;
+  --cube-translate: 60%;
+  animation: 900ms cubic-bezier(0.76, 0, 0.24, 1) both cube-roll-horizontal;
+}
+::view-transition-old(.cube-right) {
+  --cube-rotate: -90deg;
+  --cube-translate: -60%;
+  animation: 900ms cubic-bezier(0.76, 0, 0.24, 1) reverse both
+    cube-roll-horizontal;
+}
+
+::view-transition-new(.cube-left) {
+  --cube-rotate: -90deg;
+  --cube-translate: -60%;
+  animation: 900ms cubic-bezier(0.76, 0, 0.24, 1) both cube-roll-horizontal;
+}
+::view-transition-old(.cube-left) {
+  --cube-rotate: 90deg;
+  --cube-translate: 60%;
+  animation: 900ms cubic-bezier(0.76, 0, 0.24, 1) reverse both
+    cube-roll-horizontal;
+}
+
+::view-transition-new(.cube-top) {
+  --cube-rotate: 90deg;
+  --cube-translate: -60%;
+  animation: 900ms cubic-bezier(0.76, 0, 0.24, 1) both cube-roll-vertical;
+}
+::view-transition-old(.cube-top) {
+  --cube-rotate: -90deg;
+  --cube-translate: 60%;
+  animation: 900ms cubic-bezier(0.76, 0, 0.24, 1) reverse both
+    cube-roll-vertical;
+}
+
+::view-transition-new(.cube-bottom) {
+  --cube-rotate: -90deg;
+  --cube-translate: 60%;
+  animation: 900ms cubic-bezier(0.76, 0, 0.24, 1) both cube-roll-vertical;
+}
+::view-transition-old(.cube-bottom) {
+  --cube-rotate: 90deg;
+  --cube-translate: -60%;
+  animation: 900ms cubic-bezier(0.76, 0, 0.24, 1) reverse both
+    cube-roll-vertical;
 }

@@ -1,7 +1,7 @@
 export const ASCII_CHARS = " .,:;irsXA253hMHGS#9B&@"
 
-export const ASCII_COLUMNS = 120
-export const CHAR_ASPECT_RATIO = 0.5
+export const ASCII_COLUMNS = 150
+export const CHAR_ASPECT_RATIO = 0.8
 export const CANVAS_FONT = "10px monospace"
 
 /** Standard luma-weighted brightness from RGB. */

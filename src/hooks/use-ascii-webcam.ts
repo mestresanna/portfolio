@@ -21,7 +21,7 @@ type GridPhysics = {
 }
 
 // Grid units (1 unit = 1 character cell), tuned for a snappy push + soft settle.
-const MOUSE_RADIUS = 5
+const MOUSE_RADIUS = 7
 const REPEL_STRENGTH = 900
 const SPRING_STRENGTH = 120
 const DAMPING = 10
