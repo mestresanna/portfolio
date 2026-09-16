@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useSyncExternalStore } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 
 import { useAsciiWebcam } from "@/hooks/use-ascii-webcam"
 import { useTheme } from "@/hooks/use-theme"
@@ -17,7 +17,14 @@ function subscribeConsent(callback: () => void) {
 
 function getConsentSnapshot(): "granted" | "declined" | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${CONSENT_COOKIE}=([^;]*)`))
-  const value = match ? decodeURIComponent(match[1]) : null
+  let value: string | null = null
+  try {
+    value = match ? decodeURIComponent(match[1]) : null
+  } catch {
+    // Malformed cookie value (e.g. hand-edited via devtools) — treat as unset
+    // rather than letting decodeURIComponent's URIError crash the render.
+    value = null
+  }
   return value === "granted" || value === "declined" ? value : null
 }
 
@@ -26,17 +33,26 @@ function getConsentServerSnapshot(): "granted" | "declined" | null {
 }
 
 function writeConsentCookie(value: "granted" | "declined") {
-  document.cookie = `${CONSENT_COOKIE}=${value}; max-age=${CONSENT_MAX_AGE}; path=/; samesite=lax`
+  document.cookie = `${CONSENT_COOKIE}=${value}; max-age=${CONSENT_MAX_AGE}; path=/; samesite=lax; secure`
   consentListeners.forEach((listener) => listener())
 }
 
 export function Webcam() {
-  const { videoRef, canvasRef, status, error, setMonochrome, startCamera } = useAsciiWebcam()
+  const { videoRef, canvasRef, status, error, setMonochrome, startCamera, stopCamera } =
+    useAsciiWebcam()
   const consent = useSyncExternalStore(subscribeConsent, getConsentSnapshot, getConsentServerSnapshot)
   const { theme } = useTheme()
-  const declined = consent === "declined"
+  // Tracks only an *explicit* toggle action (button, or Yes/No in the
+  // prompt) — null means "no explicit choice this session yet", so the
+  // camera defaults to on unless the user had already declined before
+  // (persisted via the cookie). This is a plain derivation, not state
+  // synced from `consent` via an effect, so toggling the camera back on
+  // always correctly re-asks rather than being overwritten back to off.
+  const [manualOverride, setManualOverride] = useState<boolean | null>(null)
+  const cameraOn = manualOverride ?? consent !== "declined"
   const requesting = status === "requesting"
-  const showConsentPrompt = !declined && (status === "idle" || status === "error")
+  const showConsentPrompt =
+    cameraOn && consent !== "granted" && (status === "idle" || status === "error")
 
   // Dark theme => grayscale ascii render, light theme => full color.
   useEffect(() => {
@@ -46,12 +62,13 @@ export function Webcam() {
   // If the user previously said yes, skip the prompt and go straight back to
   // the camera instead of asking again — on every page load (once `consent`
   // resolves past the SSR snapshot) and on every fresh mount from client-side
-  // navigation (e.g. returning from /work). Gating on `status === "idle"`
-  // (rather than a "did we already try" ref) lets this correctly retry on
-  // each fresh mount without looping once a request is in flight or settled.
+  // navigation (e.g. returning from /work), and whenever they toggle the
+  // camera back on. Gating on `status === "idle"` (rather than a "did we
+  // already try" ref) lets this correctly retry on each fresh mount /
+  // toggle-on without looping once a request is in flight or settled.
   useEffect(() => {
-    if (consent === "granted" && status === "idle") startCamera()
-  }, [consent, status, startCamera])
+    if (cameraOn && consent === "granted" && status === "idle") startCamera()
+  }, [cameraOn, consent, status, startCamera])
 
   useEffect(() => {
     if (status === "streaming") writeConsentCookie("granted")
@@ -59,18 +76,30 @@ export function Webcam() {
 
   const handleDecline = () => {
     writeConsentCookie("declined")
+    // Otherwise showConsentPrompt (cameraOn && consent !== "granted") would
+    // stay true and immediately re-show the same prompt.
+    setManualOverride(false)
+  }
+
+  const handleToggleCamera = () => {
+    if (cameraOn) {
+      stopCamera()
+      setManualOverride(false)
+    } else {
+      setManualOverride(true)
+    }
   }
 
   return (
     <>
-      {!declined && (
+      {cameraOn && (
         <>
           <video ref={videoRef} autoPlay playsInline muted className="hidden" />
           <canvas ref={canvasRef} className="fixed inset-0 h-screen w-screen" />
         </>
       )}
 
-      {declined && (
+      {!cameraOn && (
         <video
           autoPlay
           muted
@@ -84,6 +113,31 @@ export function Webcam() {
         </video>
       )}
 
+	<button
+	  type="button"
+	  onClick={handleToggleCamera}
+	  aria-pressed={cameraOn}
+	  aria-label={cameraOn ? "Turn camera off" : "Turn camera on"}
+	  title={cameraOn ? "Turn camera off" : "Turn camera on"}
+	  className="fixed right-4 top-[calc(3%+2rem)] z-40 flex h-10 w-10 items-center justify-center border border-foreground bg-foreground text-background rounded-md backdrop-blur-sm transition-colors hover:bg-background hover:text-foreground"
+	>
+	  <svg
+	    width="20"
+	    height="20"
+	    viewBox="0 0 24 24"
+	    fill="none"
+	    stroke="currentColor"
+	    strokeWidth="1.75"
+	    strokeLinecap="round"
+	    strokeLinejoin="round"
+	    aria-hidden="true"
+	  >
+	    <path d="M3 8.5a2 2 0 0 1 2-2h1.5l1.2-1.8a1 1 0 0 1 .84-.45h6.92a1 1 0 0 1 .84.45L17.5 6.5H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Z" />
+	    <circle cx="12" cy="13" r="3.3" />
+	    {!cameraOn && <line x1="3" y1="3" x2="21" y2="21" />}
+	  </svg>
+	</button>
+
       {showConsentPrompt && (
         <div
           className="fixed inset-0 -z-10 bg-cover bg-center"
@@ -92,33 +146,47 @@ export function Webcam() {
       )}
 
       {showConsentPrompt && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
-          <div className="flex flex-col items-center gap-4 rounded-lg border border-white/40 bg-white/10 p-6 text-center text-neutral-900 shadow-lg backdrop-blur-md">
-            {status === "error" && error && <p className="max-w-xs text-sm">{error}</p>}
-            <p className="max-w-xs text-sm">Do you want to enable your camera to have a cool effect?
-	    <br />
-	    This is just in your personal browser, it is just for you ;)
-	    </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={startCamera}
-                className="rounded-md border border-neutral-900/30 px-4 py-2 text-sm hover:bg-neutral-900/10"
-              >
-                Yes
-              </button>
-              <button
-                type="button"
-                onClick={handleDecline}
-                className="rounded-md border border-neutral-900/30 px-4 py-2 text-sm hover:bg-neutral-900/10"
-              >
-                No
-              </button>
+	<div className="fixed inset-0 z-30 flex items-center justify-center p-4">
+	  <div className="w-full max-w-sm border border-neutral-900 bg-white p-6 text-neutral-900 rounded-lg">
+	    {status === "error" && error && (
+	      <p className="mb-5 border-b border-neutral-900/20 pb-4 text-xs uppercase tracking-wide text-neutral-600">
+		{error}
+	      </p>
+	    )}
 
-            </div>
-	      <p className="max-w-xs text-sm">If you decline, you will see a video background instead of the effect.</p>
-          </div>
-        </div>
+	    <div className="mb-8">
+	      <p className="mb-2 text-xs uppercase tracking-[0.2em] text-neutral-500">
+		Camera
+	      </p>
+
+	      <p className="text-lg leading-snug">
+		Do you want to enable your camera to have a cool effect?
+	      </p>
+	    </div>
+
+	    <div className="flex gap-2">
+	      <button
+		type="button"
+		onClick={startCamera}
+		className="border border-neutral-900 rounded-lg bg-neutral-900 px-5 py-2 text-sm text-white transition-colors hover:bg-white hover:text-neutral-900"
+	      >
+		Yes
+	      </button>
+
+	      <button
+		type="button"
+		onClick={handleDecline}
+		className="border border-neutral-900 rounded-lg px-5 py-2 text-sm transition-colors hover:bg-neutral-900 hover:text-white"
+	      >
+		No
+	      </button>
+	    </div>
+
+	    <p className="mt-6 max-w-xs text-xs leading-relaxed text-neutral-500">
+	      If you decline, you will see a video background instead of the effect.
+	    </p>
+	  </div>
+	</div>
       )}
 
       {requesting && (
@@ -126,7 +194,7 @@ export function Webcam() {
           <div
             role="status"
             aria-label="Requesting camera access"
-            className="h-14 w-14 animate-spin rounded-full border-4 border-white/20 border-t-black"
+            className="h-14 w-14 animate-spin rounded-full border-4 border-white/20 border-t-white"
           />
         </div>
       )}

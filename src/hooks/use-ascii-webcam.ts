@@ -179,6 +179,16 @@ export function useAsciiWebcam() {
     }
   }, [])
 
+  // Exposed so the UI can let the user stop the camera without navigating
+  // away — actually stops the tracks (turning off the hardware indicator),
+  // not just hiding the canvas, and invalidates any in-flight request so a
+  // permission prompt that's still pending can't land after the fact.
+  const stopCamera = useCallback(() => {
+    requestIdRef.current++
+    stopStream()
+    setStatus("idle")
+  }, [stopStream])
+
   const startCamera = useCallback(async () => {
     if (typeof window === "undefined") return
 
@@ -274,5 +284,5 @@ export function useAsciiWebcam() {
     }
   }, [stopStream])
 
-  return { videoRef, canvasRef, status, error, monochrome, setMonochrome, startCamera }
+  return { videoRef, canvasRef, status, error, monochrome, setMonochrome, startCamera, stopCamera }
 }

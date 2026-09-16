@@ -8,8 +8,8 @@ export default function Home() {
     <CubeViewTransition>
       <main className="relative min-h-screen overflow-hidden">
         <Webcam />
-        <MarqueeText text="Distortion of reality, self reflection, chaos in the desperation, pixelated constantly, and you will, will you see? You will not." />
-        <Menu logoClassName="top-[calc(8%+2rem)]" />
+        <MarqueeText text="  Distortion of reality, self reflection, chaos in the desperation, pixelated constantly, and you will, will you see? You will not" />
+        <Menu logoClassName="top-[calc(3%+2rem)]" />
       </main>
     </CubeViewTransition>
   )

@@ -1,7 +1,22 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+
+const MIN_DISTANCE = 3;
+const MAX_DISTANCE = 14;
+const WHEEL_ZOOM_SPEED = 0.01;
+const PINCH_ZOOM_SPEED = 0.02;
+
+// Distance along the camera's forward axis that fits a sphere of
+// `boundingRadius` inside a perspective frustum, accounting for aspect
+// ratio so a narrow/tall (phone) viewport is respected too.
+function computeFitDistance(boundingRadius: number, aspect: number, vFovDeg: number) {
+  const vFov = THREE.MathUtils.degToRad(vFovDeg);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+  const limitingFov = Math.min(vFov, hFov);
+  return boundingRadius / Math.sin(limitingFov / 2);
+}
 
 interface RotatingCylinderProps {
   /** Text wrapped around the cylinder's curved surface */
@@ -23,6 +38,7 @@ export default function RotatingCylinder({
   className = "",
 }: RotatingCylinderProps) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -30,13 +46,24 @@ export default function RotatingCylinder({
 
     // ---------- Scene setup ----------
     const scene = new THREE.Scene();
+    const fov = 45;
     const camera = new THREE.PerspectiveCamera(
-      45,
+      fov,
       mount.clientWidth / mount.clientHeight,
       0.1,
       100
     );
-    camera.position.set(0, 0, 7);
+
+    // Distance is driven by wheel/pinch zoom and re-fit on resize (see
+    // below) rather than fixed, so the cylinder stays fully visible on any
+    // screen size, phones included, and can be zoomed at any time.
+    const boundingRadius = Math.hypot(radius, length / 2);
+    let zoomDistance = THREE.MathUtils.clamp(
+      computeFitDistance(boundingRadius, mount.clientWidth / mount.clientHeight, fov),
+      MIN_DISTANCE,
+      MAX_DISTANCE
+    );
+    camera.position.set(0, 0, zoomDistance);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(mount.clientWidth, mount.clientHeight);
@@ -200,7 +227,13 @@ export default function RotatingCylinder({
     group.add(cylinder);
     scene.add(group);
 
-    // ---------- Drag-to-orbit interaction ----------
+    // Start slightly twisted rather than perfectly flat/side-on, so the
+    // cylinder reads as a 3D object immediately instead of looking like a
+    // flat band.
+    cylinder.rotation.x = THREE.MathUtils.degToRad(12);
+    cylinder.rotation.y = THREE.MathUtils.degToRad(150);
+
+    // ---------- Drag-to-orbit + wheel/pinch-to-zoom interaction ----------
     // Because the group is rotated 90° on Z, spinning the cylinder around
     // its local Y ("yaw") reads visually as a horizontal roll around world
     // X — rolling it forward/back cycles which wrapped lines are
@@ -212,15 +245,54 @@ export default function RotatingCylinder({
     let velocityYaw = 0;
     let velocityPitch = 0;
 
+    // Pointer Events unify mouse/touch/pen, so a single set of handlers
+    // covers drag-to-orbit everywhere; tracking every active pointer here
+    // additionally lets two simultaneous touches pinch-to-zoom.
+    const activePointers = new Map<number, { x: number; y: number }>();
+    let lastPinchDistance: number | null = null;
+
+    function pinchDistance() {
+      const [a, b] = Array.from(activePointers.values());
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function markInteracted() {
+      setHasInteracted(true);
+    }
+
     function onPointerDown(e: PointerEvent) {
-      isDragging = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      velocityYaw = 0;
-      velocityPitch = 0;
       renderer.domElement.setPointerCapture(e.pointerId);
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      markInteracted();
+
+      if (activePointers.size === 2) {
+        isDragging = false;
+        lastPinchDistance = pinchDistance();
+      } else if (activePointers.size === 1) {
+        isDragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        velocityYaw = 0;
+        velocityPitch = 0;
+      }
     }
     function onPointerMove(e: PointerEvent) {
+      if (!activePointers.has(e.pointerId)) return;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointers.size === 2) {
+        const distance = pinchDistance();
+        if (lastPinchDistance !== null) {
+          zoomDistance = THREE.MathUtils.clamp(
+            zoomDistance - (distance - lastPinchDistance) * PINCH_ZOOM_SPEED,
+            MIN_DISTANCE,
+            MAX_DISTANCE
+          );
+        }
+        lastPinchDistance = distance;
+        return;
+      }
+
       if (!isDragging) return;
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
@@ -233,15 +305,36 @@ export default function RotatingCylinder({
       velocityYaw = deltaYaw;
       velocityPitch = deltaPitch;
     }
-    function onPointerUp() {
-      isDragging = false;
+    function onPointerEnd(e: PointerEvent) {
+      activePointers.delete(e.pointerId);
+      if (activePointers.size < 2) lastPinchDistance = null;
+
+      if (activePointers.size === 1) {
+        const [remaining] = Array.from(activePointers.values());
+        isDragging = true;
+        lastX = remaining.x;
+        lastY = remaining.y;
+      } else {
+        isDragging = false;
+      }
+    }
+    function onWheel(e: WheelEvent) {
+      e.preventDefault();
+      markInteracted();
+      zoomDistance = THREE.MathUtils.clamp(
+        zoomDistance + e.deltaY * WHEEL_ZOOM_SPEED,
+        MIN_DISTANCE,
+        MAX_DISTANCE
+      );
     }
 
     renderer.domElement.style.touchAction = "none";
     renderer.domElement.style.cursor = "grab";
     renderer.domElement.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointerup", onPointerEnd);
+    window.addEventListener("pointercancel", onPointerEnd);
+    renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
 
     // ---------- Render loop ----------
     let frameId: number;
@@ -257,16 +350,25 @@ export default function RotatingCylinder({
         cylinder.rotation.x += velocityPitch;
       }
 
+      camera.position.z = zoomDistance;
       renderer.render(scene, camera);
     }
     animate();
 
     // ---------- Resize handling ----------
+    // Re-fit the zoom distance too (not just aspect), so a phone-width
+    // viewport — or rotating one — keeps the whole cylinder in view.
     function handleResize() {
       if (!mount) return;
-      camera.aspect = mount.clientWidth / mount.clientHeight;
+      const aspect = mount.clientWidth / mount.clientHeight;
+      camera.aspect = aspect;
       camera.updateProjectionMatrix();
       renderer.setSize(mount.clientWidth, mount.clientHeight);
+      zoomDistance = THREE.MathUtils.clamp(
+        computeFitDistance(boundingRadius, aspect, fov),
+        MIN_DISTANCE,
+        MAX_DISTANCE
+      );
     }
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(mount);
@@ -276,8 +378,10 @@ export default function RotatingCylinder({
       cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      renderer.domElement.removeEventListener("wheel", onWheel);
       window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointerup", onPointerEnd);
+      window.removeEventListener("pointercancel", onPointerEnd);
       geometry.dispose();
       sideMaterial.dispose();
       capMaterial.dispose();
@@ -287,5 +391,31 @@ export default function RotatingCylinder({
     };
   }, [text, imageSrc, radius, length]);
 
-  return <div ref={mountRef} className={`h-full w-full ${className}`} />;
+  return (
+    <div className={`relative h-full w-full ${className}`}>
+      <div ref={mountRef} className="h-full w-full" />
+      <div
+        className={`pointer-events-none absolute bottom-4 right-4 flex items-center gap-2 text-xs text-foreground/70 transition-opacity duration-700 ${
+          hasInteracted ? "opacity-0" : "opacity-100"
+        }`}
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 3c4.97 0 9 1.79 9 4s-4.03 4-9 4-9-1.79-9-4 4.03-4 9-4Z" />
+          <path d="M3 7v10c0 2.21 4.03 4 9 4s9-1.79 9-4V7" />
+          <path d="M4 5.5 2 7l1.8 1.8M20 5.5 22 7l-1.8 1.8" />
+        </svg>
+        <span>Drag to rotate · Scroll to zoom</span>
+      </div>
+    </div>
+  );
 }

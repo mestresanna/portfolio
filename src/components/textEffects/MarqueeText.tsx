@@ -7,7 +7,13 @@ interface MarqueeTextProps {
 export default function MarqueeText({ text }: MarqueeTextProps) {
   return (
     <div className={`absolute inset-0 ${styles.wrapper}`}>
-      <span className={styles.text}>{text}</span>
+      <div className={styles.track}>
+        <span className={styles.text}> {text} </span>
+
+        <span className={styles.text} aria-hidden="true">
+         .  {text}
+        </span>
+      </div>
     </div>
   );
 }

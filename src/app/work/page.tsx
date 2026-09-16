@@ -1,15 +1,13 @@
 import Menu from '@/components/Menu';
 import CubeViewTransition from '@/components/transitionEffects/CubeViewTransition';
+import ProjectsSection from '@/components/projects/ProjectsSection';
 
 export default function WorkPage() {
   return (
     <CubeViewTransition>
-    <main className="relative min-h-screen overflow-hidden">
+    <main className="relative min-h-screen">
     <Menu />
-    <div className="absolute inset-0 flex items-center justify-center">
-    <h1>Projects</h1>
-
-      	</div>
+    <ProjectsSection />
     </main>
     </CubeViewTransition>
 

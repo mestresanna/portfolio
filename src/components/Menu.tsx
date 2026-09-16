@@ -8,12 +8,12 @@ interface MenuProps {
 
 export default function Menu({ logoClassName = "top-8" }: MenuProps) {
   return (
-    <div className="relative z-10 flex min-h-screen flex-col justify-between p-8 pointer-events-none">
+<div className="fixed inset-0 z-10 p-8 pointer-events-none">
       <nav className="absolute inset-0 font-bold uppercase tracking-widest">
         <div
           className={`absolute left-1/2 flex -translate-x-1/2 items-center gap-3 pointer-events-auto ${logoClassName}`}
         >
-          <DirectionalLink href="/" direction="top">
+          <DirectionalLink href="/" direction="top" className="md: text-center ">
             ANNA MESTRES
           </DirectionalLink>
           <ThemeToggle />
@@ -51,7 +51,8 @@ export default function Menu({ logoClassName = "top-8" }: MenuProps) {
         </DirectionalLink>
       </nav>
 
-      <footer className="absolute bottom-4 text-sm text-white/50 pointer-events-none">
+
+      <footer className="fixed bottom-4 left-8 text-xs md:text-sm pointer-events-none">
         <span>© Anna Mestres 2026</span>
       </footer>
     </div>

@@ -1,33 +1,38 @@
 .wrapper {
+  position: absolute;
   overflow: hidden;
-  display: absolute;
   width: 100%;
+  height: 3%;
+  display: flex;
   align-items: center;
   background-color: #ff0000;
-  height: 3%;
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  animation: marquee 15s linear infinite;
 }
 
 .text {
-  position: absolute;
-  top: 50%;
+  flex-shrink: 0;
   white-space: nowrap;
   color: white;
   font-weight: 700;
   font-size: clamp(1rem, 3vw, 3rem);
-  animation: marquee 15s infinite;
+  padding-right: 0;
 }
 
 @keyframes marquee {
   from {
-    transform: translate(20%, -50%);
+    transform: translateX(0);
   }
+
   to {
-    transform: translate(-100vw, -50%);
+    transform: translateX(-50%);
   }
 }
 
-.wrapper:hover .text {
+.wrapper:hover .track {
   animation-play-state: paused;
 }
-
-
