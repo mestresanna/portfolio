@@ -23,7 +23,7 @@ export default function ProjectsSection() {
     <section className="relative w-full     px-15
     sm:px-26 md:px-36 lg:px-24 pb-24 pt-8 top-15 min-h-screen items-center justify-center ">
     <div className="w-full max-w-5xl mx-auto mt-12 ">
-      <h1 className="mb-16 text-5xl font-bold uppercase tracking-tight text-foreground md:text-7xl">
+      <h1 className="mb-16 text-4xl font-bold uppercase tracking-tight text-foreground md:text-7xl sm:text-5xl">
         Projects.
       </h1>
 

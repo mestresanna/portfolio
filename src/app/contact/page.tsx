@@ -8,9 +8,9 @@ export default function ContactPage() {
       <main className="relative min-h-screen">
         <Menu />
 
-        <section className="flex min-h-screen items-center justify-center px-15 sm:px-20 md:px-32 lg:px-24">
+        <section className="flex min-h-screen items-center justify-center px-15 sm:px-20 md:px-32 lg:px-24 pt-20 top-30  pb-24">
           <div className="w-full max-w-2xl">
-            <h1 className="mb-16 text-5xl font-bold tracking-tight md:text-7xl">
+            <h1 className="mb-16 text-4xl font-bold tracking-tight md:text-7xl sm:text-5xl ">
               LET&apos;S TALK.
             </h1>
 
@@ -38,7 +38,7 @@ export default function ContactPage() {
                   LinkedIn
                 </span>
 
-                <span className="border-b border-foreground/30 pb-1 transition-colors group-hover:border-foreground">
+                <span className="border-b text-s border-foreground/30 pb-1 transition-colors group-hover:border-foreground">
                   LinkedIn ↗
                 </span>
               </a>
