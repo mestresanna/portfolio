@@ -1,4 +1,5 @@
 import { Webcam } from "@/components/ascii-camera/Webcam"
+import InfoBubble from "@/components/InfoBubble";
 import Menu from "@/components/Menu";
 import MarqueeText from "@/components/textEffects/MarqueeText";
 import CubeViewTransition from "@/components/transitionEffects/CubeViewTransition";
@@ -10,6 +11,7 @@ export default function Home() {
         <Webcam />
         <MarqueeText text="  Distortion of reality, self reflection, chaos in the desperation, pixelated constantly, and you will, will you see? You will not" />
         <Menu logoClassName="top-[calc(3%+2rem)]" />
+        <InfoBubble text="This is your camera feed, rendered live as ASCII art. Nothing is recorded or sent anywhere." />
       </main>
     </CubeViewTransition>
   )

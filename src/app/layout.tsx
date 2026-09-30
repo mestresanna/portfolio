@@ -30,11 +30,11 @@ export const metadata: Metadata = {
     title: "Anna Mestres - AI & Software Development",
     description:
       "Portfolio of Anna Mestres, an Applied Computer Science graduate focused on AI and software development.",
-    url: "https://yourdomain.com",
+    url: "https://annamestres.com",
     siteName: "Anna Mestres",
     images: [
       {
-        url: "/og-image.jpeg",
+        url: "/images/og-image.jpeg",
         width: 1200,
         height: 630,
         alt: "Anna Mestres - AI & Software Development",
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     title: "Anna Mestres - AI & Software Development",
     description:
       "Portfolio of Anna Mestres, an Applied Computer Science graduate focused on AI and software development.",
-    images: ["/og-image.jpeg"],
+    images: ["/images/og-image.jpeg"],
   },
 
   robots: {

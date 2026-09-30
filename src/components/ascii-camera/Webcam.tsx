@@ -115,6 +115,7 @@ export function Webcam() {
 
 	<button
 	  type="button"
+	  data-info-bubble-ignore
 	  onClick={handleToggleCamera}
 	  aria-pressed={cameraOn}
 	  aria-label={cameraOn ? "Turn camera off" : "Turn camera on"}

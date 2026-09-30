@@ -201,9 +201,14 @@ export default function RotatingCylinder({
     drawLabel(); // draw immediately with just the red background + text
 
     if (imageSrc) {
+      // Same-origin asset, so no crossOrigin needed — the canvas stays
+      // untainted and the WebGL texture upload succeeds. A failed load would
+      // otherwise just leave the text-only texture in place with no hint why,
+      // which reads as a rendering bug rather than a missing file.
       const img = new Image();
-      img.crossOrigin = "anonymous";
       img.onload = () => drawLabel(img);
+      img.onerror = () =>
+        console.warn(`RotatingCylinder: could not load image '${imageSrc}'`);
       img.src = imageSrc;
     }
 
